@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dinosaur Game</title>
+
+        <style>
+            @font-face {
+                font-family: "Press Start 2P";
+                src: url("fonts/press_start_2p/PressStart2P.ttf");
+                src: url("fonts/press_start_2p/PressStart2P.ttf") format("truetype");
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            #container {
+                width: 500px;
+                height: 300px;
+                border-bottom: 1px solid black;
+                margin: 0 auto;
+                position: relative;
+            }
+
+            #dino {
+                width: 40px;
+                height: 40px;
+                position: absolute;
+                bottom: 0;
+                left: 50px;
+                background-size: cover;
+                animation: step 1s steps(1) infinite;
+                z-index: 2;
+            }
+
+            @keyframes step {
+                0% {
+                    background-image: url("images/dino_1.png");
+                }
+
+                50% {
+                    background-image: url("images/dino_2.png");
+                }
+
+                100% {
+                    background-image: url("images/dino_1.png");
+                }
+            }
+
+            .obstacle {
+                width: 36px;
+                height: 30px;
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                animation: move-left 2s linear;
+                z-index: 0;
+            }
+
+            #obstacle0, #obstacle2 {
+                background-image: url("images/cactus_0.png");
+                background-size: cover;
+            }
+
+            #obstacle1 {
+                background-image: url("images/cactus_1.png");
+                background-size: cover;
+            }
+
+            @keyframes move-left {
+                from {
+                    right: -50px;
+                }
+
+                to {
+                    right: 520px;
+                }
+            }
+
+            h1 {
+                font-weight: normal;
+                font-size: 10px;
+                text-align: center;
+                user-select: none;
+                font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+            }
+
+            #reset {
+                background-image: url("images/reset_button.png");
+                background-size: cover;
+                margin: 0 auto;
+                display: none;
+                position: relative;
+                top: 50%;
+                transform: translateY(-100%);
+                width: 34px;
+                height: 30px;
+                border: none;
+                cursor: pointer;
+            }
+
+            #game-over {
+                margin-top: 0;
+                margin-bottom: 0;
+                position: relative;
+                top: 50%;
+                transform: translateY(250%);
+            }
+
+            #hi-score {
+                margin-right: 4em;
+            }
+
+            #white-strip1 {
+                width: 100px;
+                height: 300px;
+                position: absolute;
+                top: 0;
+                left: calc(50% - 300px);
+                transform: translateX(-50%);
+                background-color: white;
+                z-index: 10;
+            }
+
+            #white-strip2 {
+                width: 100px;
+                height: 300px;
+                position: absolute;
+                top: 0;
+                left: calc(50% + 300px);
+                transform: translateX(-50%);
+                background-color: white;
+                z-index: 10;
+            }
+        </style>
+
+        <link rel="preload" as="image" href="images/dino_1.png">
+        <link rel="preload" as="image" href="images/dino_2.png">
+    </head>
+
+    <body>
+        <div id="container">
+            <h1 id="game-over"></h1>
+
+            <div id="dino"></div>
+            <div id="obstacle0"></div>
+            <div id="obstacle1"></div>
+            <div id="obstacle2"></div>
+
+            <button id="reset" onclick="ResetGame()"></button>
+        </div>
+
+        <div id="white-strip1"></div>
+        <div id="white-strip2"></div>
+
+        <h1 id="points">000000</h1>
+        <h1 id="hi-score"></h1>
+
+        <script>
+            var dino = document.getElementById("dino");
+            var container = document.getElementById("container");
+            var resetButton = document.getElementById("reset");
+            var header = document.getElementById("game-over");
+            var bottom = 0;
+            var canJump = true;
+            var lost = false;
+            var points = 0;
+            var hiScore = 0;
+            var pointsCounter = document.getElementById("points");
+            var hiScoreCounter = document.getElementById("hi-score");
+
+            window.addEventListener("keydown", function(event) {
+                if((event.code == "Space" || event.code == "ArrowUp") && canJump && !lost)
+                    Jump();
+                if((event.code == "Space" || event.code == "ArrowUp") && lost)
+                    ResetGame();
+                if(event.code == "Enter" && lost)
+                    ResetGame();
+            }, true);
+
+            // jumping physics
+            function Jump()
+            {
+                var vel = 10;
+                var accel = 0.5;
+                canJump = false;
+
+                if(!lost)
+                {
+                    var upInterval = setInterval(function() {
+                        if(bottom + vel <= 0)
+                        {
+                            bottom = 0;
+                        }
+                        else
+                        {
+                            bottom += vel;
+                            vel -= accel;
+                        }
+                        dino.style.bottom = bottom + "px";
+
+                        if(bottom <= 0 && !lost)
+                        {
+                            clearInterval(upInterval);
+                            canJump = true;
+                        }
+                    }, 20);
+                }
+            }
+
+            var spawnTimer = 0;
+            var spawnInterval = 100;
+            var maxSpawnTime = 10;
+            var minSpawnTime = 3;
+
+            // cacti spawner
+            function SpawnObstacle()
+            {
+                var obstacle;
+                for(let i = 0; i < 3; i++)
+                {
+                    if(document.getElementById("obstacle" + i).classList.value != "obstacle")
+                        obstacle = document.getElementById("obstacle" + i);
+                }
+                obstacle.classList.add("obstacle");
+                setTimeout(function() {
+                    if(!lost)
+                        obstacle.classList.remove("obstacle");
+                }, 2000)
+            }
+
+            function ResetGame() {
+                for(let i = 0; i < 3; i++)
+                {
+                    document.getElementById("obstacle" + i).classList.remove("obstacle");
+                    document.getElementById("obstacle" + i).style.animationPlayState = "running";
+                }
+
+                header.innerHTML = "";
+                dino.style.animationPlayState = "running";
+
+                spawnInterval = 3000;
+                points = 0;
+                resetButton.style.display = "none";
+                lost = false;
+                canJump = true;
+            }
+
+            // game ticks; Unity's "Update()" function equivalent
+            var Update = setInterval(function() {                
+                // cacti spawning interval
+                if(spawnTimer >= spawnInterval && !lost)
+                {
+                    spawnInterval = Math.floor(Math.random() * maxSpawnTime + minSpawnTime) * 250;
+                    SpawnObstacle();
+                    console.log(spawnInterval);
+                    
+                    spawnTimer = 0;
+                }
+
+                // collision detection
+                for(let i = 0; i < 3; i++)
+                {
+                    var hitObstacle = document.getElementById("obstacle" + i);
+                    if(
+                        420 <= parseInt(getComputedStyle(hitObstacle).getPropertyValue("right")) + 28 &&
+                        450 >= parseInt(getComputedStyle(hitObstacle).getPropertyValue("right")) + 28 &&
+                        bottom <= 20
+                    )
+                    {
+                        resetButton.style.display = "block";
+                        header.innerHTML = "GAME OVER";
+                        dino.style.animationPlayState = "paused";
+                        for(let i = 0; i < 3; i++)
+                        {
+                            document.getElementById("obstacle" + i).style.animationPlayState = "paused";
+                            lost = true;
+                        }
+
+                        if(points > hiScore)
+                            hiScore = points;
+                    }
+                }
+
+                spawnTimer += 20;
+                if(!lost)
+                    points++;
+
+                pointsCounter.innerHTML = points.toString().padStart(6, "0");
+                
+                if(hiScore != 0)
+                    hiScoreCounter.innerHTML = "HI: " + hiScore.toString().padStart(6, "0");
+            }, 20);
+        </script>
+    </body>
+</html>
